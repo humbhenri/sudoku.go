@@ -153,15 +153,21 @@ func processBatch(file string) {
 	if (err != nil) {
 		panic(err)
 	}
+	var solvedOutput bytes.Buffer
 	count := 0
 	before := time.Now()
 	for _, line := range strings.Split(string(data), "\n") {
 		sudoku := FromStr(line)
-		solve(sudoku)
+		solvedOutput.WriteString(ToStr(solve(sudoku)))
+		solvedOutput.WriteString("\n")
 		count++
 	}
 	diff := time.Now().Sub(before)
 	fmt.Printf("-- Solved %d sudokus. Elapsed time: %f seconds\n",count, diff.Seconds())
+	err = ioutil.WriteFile("solved_" + file, solvedOutput.Bytes(), 0644)
+	if (err != nil) {
+		panic(err)
+	}
 }
 
 
