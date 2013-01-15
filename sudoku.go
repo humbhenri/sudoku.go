@@ -7,6 +7,7 @@ import (
 	"os"
 	"io/ioutil"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -147,19 +148,24 @@ func genericSplit(re *regexp.Regexp,s string, numFields int, includeSep bool) []
 }
 
 
-func main() {
-	file := os.Args[1]
+func processBatch(file string) {
 	data, err := ioutil.ReadFile(file)
 	if (err != nil) {
 		panic(err)
 	}
-	r, _ := regexp.Compile("-- SAMPLE.*--")
-	sudokus := genericSplit(r, string(data), -1, false)
-	for _, sudoku := range sudokus {
-		before := time.Now()
-		solved := solve(FromStr(sudoku))
-		diff := time.Now().Sub(before)
-		fmt.Printf("-- Elapsed time: %f seconds\n", diff.Seconds())
-		fmt.Println(ToStr(solved))
+	count := 0
+	before := time.Now()
+	for _, line := range strings.Split(string(data), "\n") {
+		sudoku := FromStr(line)
+		solve(sudoku)
+		count++
 	}
+	diff := time.Now().Sub(before)
+	fmt.Printf("-- Solved %d sudokus. Elapsed time: %f seconds\n",count, diff.Seconds())
+}
+
+
+func main() {
+	file := os.Args[1]
+	processBatch(file)
 }
