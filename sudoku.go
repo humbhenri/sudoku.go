@@ -4,6 +4,10 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"io/ioutil"
+	"regexp"
+	"time"
 )
 
 const BOARD_SIZE = 9 // rows and column size
@@ -103,36 +107,59 @@ func solve(board [][]int) [][]int {
 	return board
 }
 
+
+// genericSplit provides a generic version of Split and SplitAfter.
+// Set the includeSep bool to true to have it include the separtor.
+func genericSplit(re *regexp.Regexp,s string, numFields int, includeSep bool) []string {
+	if numFields == 0 {
+		return make([]string, 0)
+	}
+
+	// Using regexp, including the separator is really easy. Instead of
+	// including up to the start of the separator we include to the end.
+	// The start of the separator is stored in index 0.
+	// The end of the separator is stored in index 1.
+	var includeTo int
+	if includeSep {
+		includeTo = 1
+	} else {
+		includeTo = 0
+	}
+
+	count := re.FindAllStringIndex(s, numFields-1)
+	n := len(count) + 1
+	stor := make([]string, n)
+
+	if n == 1 {
+		stor[0] = s
+		return stor
+	}
+
+	stor[0] = s[:count[0][includeTo]]
+
+	for i := 1; i < n-1; i++ {
+		stor[i] = s[count[i-1][1]:count[i][includeTo]]
+	}
+
+	stor[n-1] = s[count[n-2][1]:]
+
+	return stor
+}
+
+
 func main() {
-	board := FromStr(
-		`0 0 0 1 0 0 7 0 2
-		0 3 0 9 5 0 0 0 0
-		0 0 1 0 0 2 0 0 3
-		5 9 0 0 0 0 3 0 1
-		0 2 0 0 0 0 0 7 0
-		7 0 3 0 0 0 0 9 8
-		8 0 0 2 0 0 1 0 0
-		0 0 0 0 8 5 0 6 0
-		6 0 5 0 0 9 0 0 0`)
-	board2 := FromStr(`5 3 4 6 7 8 9 1 2
-        6 7 2 1 9 5 3 4 8
-        1 9 8 3 4 2 5 6 7
-        8 5 9 7 6 1 4 2 3
-        4 2 6 8 5 3 7 9 1
-        7 1 3 9 2 4 8 5 6
-        9 6 1 5 3 7 2 8 4
-        2 8 7 4 1 9 6 3 5
-        3 4 5 2 8 6 1 7 9`)
-	board3 := FromStr(`0 0 0 1 0 0 7 0 2
-0 3 0 9 5 0 0 0 0
-0 0 1 0 0 2 0 0 3
-5 9 0 0 0 0 3 0 1
-0 2 0 0 3 0 0 7 0
-7 0 3 0 0 0 0 9 8
-8 0 0 2 0 0 1 0 0
-0 0 0 0 8 5 0 6 0
-6 0 5 0 0 9 0 0 0`)
-	fmt.Println(ToStr(solve(board)))
-	fmt.Println(ToStr(solve(board2)))
-	fmt.Println(ToStr(solve(board3)))
+	file := os.Args[1]
+	data, err := ioutil.ReadFile(file)
+	if (err != nil) {
+		panic(err)
+	}
+	r, _ := regexp.Compile("-- SAMPLE.*--")
+	sudokus := genericSplit(r, string(data), -1, false)
+	for _, sudoku := range sudokus {
+		before := time.Now()
+		solved := solve(FromStr(sudoku))
+		diff := time.Now().Sub(before)
+		fmt.Printf("-- Elapsed time: %f seconds\n", diff.Seconds())
+		fmt.Println(ToStr(solved))
+	}
 }
